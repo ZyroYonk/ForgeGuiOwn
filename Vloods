@@ -14,6 +14,7 @@ local Library do
     local RunService = game:GetService("RunService")
     local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
     local TweenService = game:GetService("TweenService")
+    local TouchEnabled = UserInputService.TouchEnabled
 
     gethui = gethui or function()
         return CoreGui
@@ -92,6 +93,7 @@ local Library do
         Holder = nil,
         NotifHolder = nil,
         UnusedHolder = nil,
+        ToggleButton = nil,
 
         Font = nil
     }
@@ -579,6 +581,9 @@ local Library do
 
         if self.Holder then 
             self.Holder:Clean()
+        end
+        if self.ToggleButton then
+            self.ToggleButton:Clean()
         end
 
         Library = nil 
@@ -2179,6 +2184,77 @@ end
 
     function Window:SetToggleKey(KeyCode)
         Library.MenuKeybind = tostring(KeyCode)
+    end
+
+    -- Add a floating toggle button for mobile users
+    function Window:AddToggleButton()
+        if Library.ToggleButton then return end
+        
+        local Button = Instances:Create("ImageButton", {
+            Parent = Library.Holder.Instance,
+            Name = "ToggleButton",
+            Image = "rbxassetid://3927389539", -- default gear icon
+            BackgroundColor3 = Library.Theme.Accent,
+            BackgroundTransparency = 0.2,
+            Size = UDim2New(0, 50, 0, 50),
+            Position = UDim2New(1, -60, 0.5, -25),
+            AnchorPoint = Vector2New(1, 0.5),
+            BorderSizePixel = 0,
+            ImageColor3 = FromRGB(255, 255, 255),
+            ZIndex = 10
+        })
+        Library:AddToTheme(Button, {BackgroundColor3 = "Accent"})
+        
+        local Corner = Instances:Create("UICorner", {
+            Parent = Button.Instance,
+            CornerRadius = UDimNew(1, 0)
+        })
+        
+        local Stroke = Instances:Create("UIStroke", {
+            Parent = Button.Instance,
+            Color = Library.Theme.Border,
+            Thickness = 1.5
+        })
+        Library:AddToTheme(Stroke, {Color = "Border"})
+        
+        -- Make button draggable
+        local Dragging = false
+        local DragStart
+        local StartPos
+        
+        Button:Connect("InputBegan", function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                Dragging = true
+                DragStart = Input.Position
+                StartPos = Button.Instance.Position
+                Input.Changed:Connect(function()
+                    if Input.UserInputState == Enum.UserInputState.End then
+                        Dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        Library:Connect(UserInputService.InputChanged, function(Input)
+            if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
+                local Delta = Input.Position - DragStart
+                local NewPos = UDim2New(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+                -- Clamp to screen edges
+                NewPos = UDim2New(NewPos.X.Scale, math.clamp(NewPos.X.Offset, 0, Library.Holder.Instance.AbsoluteSize.X - 50), 
+                                  NewPos.Y.Scale, math.clamp(NewPos.Y.Offset, 0, Library.Holder.Instance.AbsoluteSize.Y - 50))
+                Button.Instance.Position = NewPos
+            end
+        end)
+        
+        Button:Connect("MouseButton1Click", function()
+            Window:SetOpen(not Window.IsOpen)
+        end)
+        Button:Connect("TouchTap", function()
+            Window:SetOpen(not Window.IsOpen)
+        end)
+        
+        Library.ToggleButton = Button
+        return Button
     end
 
     Library:Connect(UserInputService.InputBegan, function(Input)
