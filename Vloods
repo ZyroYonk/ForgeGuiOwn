@@ -1,6 +1,6 @@
 -- made by Vloods
 -- https://discord.gg/VhvTd5HV8d
--- example at bottom
+-- Enhanced: Smooth dragging + Paragraph element (Discord server info)
 
 if getgenv().Library then
     getgenv().Library:Unload()
@@ -14,7 +14,6 @@ local Library do
     local RunService = game:GetService("RunService")
     local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
     local TweenService = game:GetService("TweenService")
-    local TouchEnabled = UserInputService.TouchEnabled
 
     gethui = gethui or function()
         return CoreGui
@@ -93,7 +92,6 @@ local Library do
         Holder = nil,
         NotifHolder = nil,
         UnusedHolder = nil,
-        ToggleButton = nil,
 
         Font = nil
     }
@@ -363,55 +361,49 @@ local Library do
             self = nil
         end
 
+        -- IMPROVED DRAGGING (smooth on PC & mobile)
         Instances.MakeDraggable = function(self)
-            if not self.Instance then 
-                return
-            end
-
+            if not self.Instance then return end
             local Gui = self.Instance
+            local dragging = false
+            local dragStart = Vector2.new()
+            local startPos = UDim2.new()
+            local dragConnection = nil
 
-            local Dragging = false 
-            local DragStart
-            local StartPosition 
-
-            local Set = function(Input)
-                local DragDelta = Input.Position - DragStart
-                self:Tween(TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2New(StartPosition.X.Scale, StartPosition.X.Offset + DragDelta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + DragDelta.Y)})
+            local function updatePosition(input)
+                if not dragging then return end
+                local delta = input.Position - dragStart
+                local newX = startPos.X.Offset + delta.X
+                local newY = startPos.Y.Offset + delta.Y
+                Gui.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
             end
 
-            local InputChanged
-
-            self:Connect("InputBegan", function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                    Dragging = true
-
-                    DragStart = Input.Position
-                    StartPosition = Gui.Position
-
-                    if InputChanged then 
-                        return
-                    end
-
-                    InputChanged = Input.Changed:Connect(function()
-                        if Input.UserInputState == Enum.UserInputState.End then
-                            Dragging = false
-
-                            InputChanged:Disconnect()
-                            InputChanged = nil
+            local function startDrag(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = Gui.Position
+                    if dragConnection then dragConnection:Disconnect() end
+                    dragConnection = UserInputService.InputChanged:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+                            updatePosition(inp)
                         end
                     end)
                 end
-            end)
+            end
 
-            Library:Connect(UserInputService.InputChanged, function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-                    if Dragging then
-                        Set(Input)
+            local function stopDrag(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                    if dragConnection then
+                        dragConnection:Disconnect()
+                        dragConnection = nil
                     end
                 end
-            end)
+            end
 
-            return Dragging
+            self:Connect("InputBegan", startDrag)
+            self:Connect("InputEnded", stopDrag)
         end
 
         Instances.MakeResizeable = function(self, Minimum, Maximum)
@@ -581,9 +573,6 @@ local Library do
 
         if self.Holder then 
             self.Holder:Clean()
-        end
-        if self.ToggleButton then
-            self.ToggleButton:Clean()
         end
 
         Library = nil 
@@ -1890,7 +1879,7 @@ Library.Window = function(self, Data)
             BackgroundColor3 = FromRGB(16, 18, 18)
         })  Items["MainFrame"]:AddToTheme({BackgroundColor3 = "Background"})
 
-        Items["MainFrame"]:MakeDraggable()
+        Items["MainFrame"]:MakeDraggable()   -- now uses smooth dragging
         Items["MainFrame"]:MakeResizeable(Vector2New(Items["MainFrame"].Instance.AbsoluteSize.X, Items["MainFrame"].Instance.AbsoluteSize.Y), Vector2New(9999, 9999))
         
         Instances:Create("UICorner", {
@@ -2184,77 +2173,6 @@ end
 
     function Window:SetToggleKey(KeyCode)
         Library.MenuKeybind = tostring(KeyCode)
-    end
-
-    -- Add a floating toggle button for mobile users
-    function Window:AddToggleButton()
-        if Library.ToggleButton then return end
-        
-        local Button = Instances:Create("ImageButton", {
-            Parent = Library.Holder.Instance,
-            Name = "ToggleButton",
-            Image = "rbxassetid://3927389539", -- default gear icon
-            BackgroundColor3 = Library.Theme.Accent,
-            BackgroundTransparency = 0.2,
-            Size = UDim2New(0, 50, 0, 50),
-            Position = UDim2New(1, -60, 0.5, -25),
-            AnchorPoint = Vector2New(1, 0.5),
-            BorderSizePixel = 0,
-            ImageColor3 = FromRGB(255, 255, 255),
-            ZIndex = 10
-        })
-        Library:AddToTheme(Button, {BackgroundColor3 = "Accent"})
-        
-        local Corner = Instances:Create("UICorner", {
-            Parent = Button.Instance,
-            CornerRadius = UDimNew(1, 0)
-        })
-        
-        local Stroke = Instances:Create("UIStroke", {
-            Parent = Button.Instance,
-            Color = Library.Theme.Border,
-            Thickness = 1.5
-        })
-        Library:AddToTheme(Stroke, {Color = "Border"})
-        
-        -- Make button draggable
-        local Dragging = false
-        local DragStart
-        local StartPos
-        
-        Button:Connect("InputBegan", function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                Dragging = true
-                DragStart = Input.Position
-                StartPos = Button.Instance.Position
-                Input.Changed:Connect(function()
-                    if Input.UserInputState == Enum.UserInputState.End then
-                        Dragging = false
-                    end
-                end)
-            end
-        end)
-        
-        Library:Connect(UserInputService.InputChanged, function(Input)
-            if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
-                local Delta = Input.Position - DragStart
-                local NewPos = UDim2New(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
-                -- Clamp to screen edges
-                NewPos = UDim2New(NewPos.X.Scale, math.clamp(NewPos.X.Offset, 0, Library.Holder.Instance.AbsoluteSize.X - 50), 
-                                  NewPos.Y.Scale, math.clamp(NewPos.Y.Offset, 0, Library.Holder.Instance.AbsoluteSize.Y - 50))
-                Button.Instance.Position = NewPos
-            end
-        end)
-        
-        Button:Connect("MouseButton1Click", function()
-            Window:SetOpen(not Window.IsOpen)
-        end)
-        Button:Connect("TouchTap", function()
-            Window:SetOpen(not Window.IsOpen)
-        end)
-        
-        Library.ToggleButton = Button
-        return Button
     end
 
     Library:Connect(UserInputService.InputBegan, function(Input)
@@ -3893,6 +3811,232 @@ end
 
             return Textbox 
         end
+        
+        -- NEW: Paragraph element (ideal for Discord server info)
+        Library.Sections.Paragraph = function(self, Data)
+            Data = Data or { }
+            local Paragraph = {
+                Window = self.Window,
+                Page = self.Page,
+                Section = self,
+                Title = Data.Title or "Info",
+                Description = Data.Description or "",
+                Icon = Data.Icon,       -- optional image ID
+                OnlineCount = Data.OnlineCount or 0,
+                OfflineCount = Data.OfflineCount or 0,
+                ShowCounts = Data.ShowCounts ~= false,
+                Callback = Data.Callback
+            }
+            
+            local Items = { }
+            -- main container
+            Items.Main = Instances:Create("Frame", {
+                Parent = Paragraph.Section.Items["Content"].Instance,
+                Name = "\0",
+                BackgroundTransparency = 1,
+                Size = UDim2New(1, 0, 0, 50),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                BorderSizePixel = 0
+            })
+            
+            -- inner frame (styled)
+            Items.Inner = Instances:Create("Frame", {
+                Parent = Items.Main.Instance,
+                Name = "\0",
+                BackgroundColor3 = Library.Theme.Element,
+                Size = UDim2New(1, -16, 1, -8),
+                Position = UDim2New(0, 8, 0, 4),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                BorderSizePixel = 0
+            })
+            Library:AddToTheme(Items.Inner, {BackgroundColor3 = "Element"})
+            
+            local corner = Instances:Create("UICorner", {
+                Parent = Items.Inner.Instance,
+                CornerRadius = UDimNew(0, 6)
+            })
+            
+            local stroke = Instances:Create("UIStroke", {
+                Parent = Items.Inner.Instance,
+                Color = Library.Theme["Border 2"],
+                Thickness = 1.5
+            })
+            Library:AddToTheme(stroke, {Color = "Border 2"})
+            
+            -- Padding inside the paragraph
+            local padding = Instances:Create("UIPadding", {
+                Parent = Items.Inner.Instance,
+                PaddingTop = UDimNew(0, 8),
+                PaddingBottom = UDimNew(0, 8),
+                PaddingLeft = UDimNew(0, 10),
+                PaddingRight = UDimNew(0, 10)
+            })
+            
+            -- top row: icon + title
+            local TopRow = Instances:Create("Frame", {
+                Parent = Items.Inner.Instance,
+                Name = "\0",
+                BackgroundTransparency = 1,
+                Size = UDim2New(1, 0, 0, 24),
+                AutomaticSize = Enum.AutomaticSize.Y
+            })
+            
+            local TitleIcon
+            if Paragraph.Icon then
+                TitleIcon = Instances:Create("ImageLabel", {
+                    Parent = TopRow.Instance,
+                    Name = "\0",
+                    Image = "rbxassetid://"..Paragraph.Icon,
+                    Size = UDim2New(0, 20, 0, 20),
+                    Position = UDim2New(0, 0, 0, 2),
+                    BackgroundTransparency = 1,
+                    ImageColor3 = Library.Theme.Accent
+                })
+                Library:AddToTheme(TitleIcon, {ImageColor3 = "Accent"})
+                Items.TitleIcon = TitleIcon
+            end
+            
+            local TitleLabel = Instances:Create("TextLabel", {
+                Parent = TopRow.Instance,
+                Name = "\0",
+                FontFace = Library.Font,
+                Text = Paragraph.Title,
+                TextColor3 = Library.Theme.Accent,
+                BackgroundTransparency = 1,
+                Size = UDim2New(1, TitleIcon and -26 or 0, 0, 24),
+                Position = UDim2New(0, TitleIcon and 26 or 0, 0, 0),
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextSize = 16
+            })
+            Library:AddToTheme(TitleLabel, {TextColor3 = "Accent"})
+            Items.Title = TitleLabel
+            
+            -- description
+            if Paragraph.Description and Paragraph.Description ~= "" then
+                local DescLabel = Instances:Create("TextLabel", {
+                    Parent = Items.Inner.Instance,
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    Text = Paragraph.Description,
+                    TextColor3 = FromRGB(180, 180, 180),
+                    BackgroundTransparency = 1,
+                    Size = UDim2New(1, 0, 0, 20),
+                    Position = UDim2New(0, 0, 0, 28),
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextSize = 12,
+                    TextWrapped = true,
+                    AutomaticSize = Enum.AutomaticSize.Y
+                })
+                Items.Description = DescLabel
+            end
+            
+            -- online / offline counts
+            if Paragraph.ShowCounts then
+                local CountRow = Instances:Create("Frame", {
+                    Parent = Items.Inner.Instance,
+                    Name = "\0",
+                    BackgroundTransparency = 1,
+                    Size = UDim2New(1, 0, 0, 24),
+                    Position = UDim2New(0, 0, 0, (Paragraph.Description and Paragraph.Description ~= "") and 50 or 28),
+                    AutomaticSize = Enum.AutomaticSize.Y
+                })
+                
+                local OnlineIcon = Instances:Create("ImageLabel", {
+                    Parent = CountRow.Instance,
+                    Name = "\0",
+                    Image = "rbxassetid://3928765919", -- green circle
+                    Size = UDim2New(0, 14, 0, 14),
+                    Position = UDim2New(0, 0, 0, 5),
+                    BackgroundTransparency = 1,
+                    ImageColor3 = FromRGB(0, 255, 0)
+                })
+                
+                local OnlineText = Instances:Create("TextLabel", {
+                    Parent = CountRow.Instance,
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    Text = "Online: "..Paragraph.OnlineCount,
+                    TextColor3 = FromRGB(150, 255, 150),
+                    BackgroundTransparency = 1,
+                    Size = UDim2New(0, 100, 0, 24),
+                    Position = UDim2New(0, 20, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextSize = 12
+                })
+                
+                local OfflineIcon = Instances:Create("ImageLabel", {
+                    Parent = CountRow.Instance,
+                    Name = "\0",
+                    Image = "rbxassetid://3928765919", -- grey circle
+                    Size = UDim2New(0, 14, 0, 14),
+                    Position = UDim2New(0, 120, 0, 5),
+                    BackgroundTransparency = 1,
+                    ImageColor3 = FromRGB(100, 100, 100)
+                })
+                
+                local OfflineText = Instances:Create("TextLabel", {
+                    Parent = CountRow.Instance,
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    Text = "Offline: "..Paragraph.OfflineCount,
+                    TextColor3 = FromRGB(150, 150, 150),
+                    BackgroundTransparency = 1,
+                    Size = UDim2New(0, 100, 0, 24),
+                    Position = UDim2New(0, 140, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextSize = 12
+                })
+                
+                Items.OnlineText = OnlineText
+                Items.OfflineText = OfflineText
+                Items.CountRow = CountRow
+            end
+            
+            function Paragraph:UpdateCounts(online, offline)
+                if Items.OnlineText then
+                    Items.OnlineText.Instance.Text = "Online: "..(online or Paragraph.OnlineCount)
+                end
+                if Items.OfflineText then
+                    Items.OfflineText.Instance.Text = "Offline: "..(offline or Paragraph.OfflineCount)
+                end
+                Paragraph.OnlineCount = online or Paragraph.OnlineCount
+                Paragraph.OfflineCount = offline or Paragraph.OfflineCount
+                if Paragraph.Callback then
+                    Library:SafeCall(Paragraph.Callback, Paragraph.OnlineCount, Paragraph.OfflineCount)
+                end
+            end
+            
+            function Paragraph:SetTitle(text)
+                Paragraph.Title = text
+                Items.Title.Instance.Text = text
+            end
+            
+            function Paragraph:SetDescription(text)
+                Paragraph.Description = text
+                if Items.Description then
+                    Items.Description.Instance.Text = text
+                else
+                    -- create description if it didn't exist
+                    local DescLabel = Instances:Create("TextLabel", {
+                        Parent = Items.Inner.Instance,
+                        Name = "\0",
+                        FontFace = Library.Font,
+                        Text = text,
+                        TextColor3 = FromRGB(180, 180, 180),
+                        BackgroundTransparency = 1,
+                        Size = UDim2New(1, 0, 0, 20),
+                        Position = UDim2New(0, 0, 0, 28),
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextSize = 12,
+                        TextWrapped = true,
+                        AutomaticSize = Enum.AutomaticSize.Y
+                    })
+                    Items.Description = DescLabel
+                end
+            end
+            
+            return Paragraph
+        end
     end
 
     -- Add Keybind method to Page (Tab)
@@ -4212,4 +4356,40 @@ end
 end
 
 getgenv().Library = Library
-return Library
+
+-- ========== EXAMPLE USAGE (with Discord Server Info) ==========
+local win = Library:Window({
+    Name = "My Hub",
+    SubTitle = "Smooth Dragging + Discord Info"
+})
+
+local mainPage = win:Page({Name = "Main", Icon = "136879043989014"})
+local infoSection = mainPage:Section({Name = "Server Info", Icon = "97491613646216"})
+
+-- Create a Paragraph element that looks like a Discord server card
+local discordInfo = infoSection:Paragraph({
+    Title = "My Discord Server",
+    Description = "Join for updates and support!",
+    Icon = "166991748287058",   -- Discord icon asset ID (or any image)
+    OnlineCount = 42,
+    OfflineCount = 128,
+    ShowCounts = true,
+    Callback = function(online, offline)
+        print("Online: "..online.." | Offline: "..offline)
+    end
+})
+
+-- You can update counts dynamically later if you fetch from an API
+-- discordInfo:UpdateCounts(55, 140)
+
+-- Optional: Add a button to refresh counts (simulate)
+infoSection:Button({
+    Name = "Refresh Counts",
+    Callback = function()
+        -- In a real script you could HTTP get from Discord API
+        discordInfo:UpdateCounts(55, 150)
+        Library:Notification("Counts updated!", 2, "166991748287058")
+    end
+})
+
+-- The window is already open and draggable (smooth on PC & mobile)
