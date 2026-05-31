@@ -1,6 +1,7 @@
 -- made by Vloods
 -- https://discord.gg/VhvTd5HV8d
 -- Complete fixed library with stable toggle button (never disappears)
+-- UPDATED: Integrated StrikeX-style toggle button with gradient stroke
 
 if getgenv().Library then
     getgenv().Library:Unload()
@@ -2186,7 +2187,7 @@ end
         Library.MenuKeybind = tostring(KeyCode)
     end
 
-    -- ULTRA STABLE TOGGLE BUTTON (never disappears, always draggable)
+    -- UPDATED: STRIKEX-STYLE TOGGLE BUTTON (never disappears, always draggable, red gradient stroke)
     function Window:AddToggleButton()
         if Library.ToggleButton then return end
         
@@ -2194,42 +2195,52 @@ end
         if not Library.ToggleButtonGui then
             Library.ToggleButtonGui = Instances:Create("ScreenGui", {
                 Parent = gethui(),
-                Name = "ToggleButtonGui",
+                Name = "StrikeXMenuGUI",
                 ZIndexBehavior = Enum.ZIndexBehavior.Global,
-                DisplayOrder = 999, -- very high priority
+                DisplayOrder = 999,
                 ResetOnSpawn = false
             })
         end
         
+        -- Create the button with the new StrikeX design
         local Button = Instances:Create("ImageButton", {
             Parent = Library.ToggleButtonGui.Instance,
-            Name = "ToggleButton",
-            Image = "rbxassetid://3927389539",
-            BackgroundColor3 = Library.Theme.Accent,
-            BackgroundTransparency = 0.2,
-            Size = UDim2New(0, 50, 0, 50),
-            Position = UDim2New(1, -60, 0.5, -25),
-            AnchorPoint = Vector2New(1, 0.5),
+            Name = "StrikeXToggle",
+            Image = "rbxassetid://77596720579122",
+            BackgroundColor3 = FromRGB(30, 30, 30),
+            Size = UDim2New(0, 60, 0, 60),
+            Position = UDim2New(0, 70, 0, 70),
+            AutoButtonColor = true,
             BorderSizePixel = 0,
-            ImageColor3 = FromRGB(255, 255, 255),
             ZIndex = 10,
             Visible = true
         })
-        Library:AddToTheme(Button, {BackgroundColor3 = "Accent"})
         
-        local Corner = Instances:Create("UICorner", {
+        -- Corner radius (rounded corners)
+        Instances:Create("UICorner", {
             Parent = Button.Instance,
-            CornerRadius = UDimNew(1, 0)
+            CornerRadius = UDimNew(0, 12)
         })
         
+        -- Stroke with red gradient (matching StrikeX style)
         local Stroke = Instances:Create("UIStroke", {
             Parent = Button.Instance,
-            Color = Library.Theme.Border,
-            Thickness = 1.5
+            Thickness = 2,
+            Color = FromRGB(255, 0, 0),
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         })
-        Library:AddToTheme(Stroke, {Color = "Border"})
         
-        -- Simple and robust drag system
+        -- Gradient for the stroke
+        local Gradient = Instances:Create("UIGradient", {
+            Parent = Stroke.Instance,
+            Rotation = 45,
+            Color = RGBSequence{
+                RGBSequenceKeypoint(0, FromRGB(255, 100, 100)),
+                RGBSequenceKeypoint(1, FromRGB(150, 0, 0))
+            }
+        })
+        
+        -- Robust dragging system
         local dragging = false
         local dragStart = nil
         local startPos = nil
@@ -2259,9 +2270,9 @@ end
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             
-            -- Clamp to screen edges (50 is button size)
-            newX = math.clamp(newX, 0, screenSize.X - 50)
-            newY = math.clamp(newY, 0, screenSize.Y - 50)
+            -- Clamp to screen edges (60 is button size)
+            newX = math.clamp(newX, 0, screenSize.X - 60)
+            newY = math.clamp(newY, 0, screenSize.Y - 60)
             
             Button.Instance.Position = UDim2New(0, newX, 0, newY)
         end
