@@ -145,7 +145,7 @@ local Library do
         ["KeypadOne"]         = "Keypad1",
         ["KeypadTwo"]         = "Keypad2",
         ["KeypadThree"]       = "Keypad3",
-        ["KeypadFour"]       = "Keypad4",
+        ["KeypadFour"]        = "Keypad4",
         ["KeypadFive"]        = "Keypad5",
         ["KeypadSix"]         = "Keypad6",
         ["KeypadSeven"]       = "Keypad7",
@@ -2295,39 +2295,46 @@ end
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
                 
-                Items["SubPages"] = Instances:Create("Frame", {
+                -- Make SubPages a ScrollingFrame for horizontal sliding
+                Items["SubPagesContainer"] = Instances:Create("Frame", {
                     Parent = Items["Page"].Instance,
                     Name = "\0",
-                    Size = UDim2New(0, 0, 0, 30),
+                    BackgroundTransparency = 1,
                     Position = UDim2New(0, 13, 0, 42),
-                    BorderColor3 = FromRGB(0, 0, 0),
+                    Size = UDim2New(1, -26, 0, 30),
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = FromRGB(16, 18, 18)
-                })  Items["SubPages"]:AddToTheme({BackgroundColor3 = "Background"})
+                })
+                
+                Items["SubPages"] = Instances:Create("ScrollingFrame", {
+                    Parent = Items["SubPagesContainer"].Instance,
+                    Name = "\0",
+                    BackgroundTransparency = 1,
+                    Size = UDim2New(1, 0, 1, 0),
+                    ScrollBarThickness = 2,
+                    ScrollBarImageTransparency = 0.5,
+                    BorderSizePixel = 0,
+                    AutomaticCanvasSize = Enum.AutomaticSize.X,
+                    CanvasSize = UDim2New(0, 0, 0, 0),
+                    ScrollingDirection = Enum.ScrollingDirection.X,
+                    ScrollBarImageColor3 = Library.Theme.Accent
+                })
+                Library:AddToTheme(Items["SubPages"], {ScrollBarImageColor3 = "Accent"})
                 
                 Instances:Create("UIPadding", {
                     Parent = Items["SubPages"].Instance,
                     Name = "\0",
                     PaddingTop = UDimNew(0, 2),
-                    PaddingBottom = UDimNew(0, 2),
-                    PaddingRight = UDimNew(0, 2),
-                    PaddingLeft = UDimNew(0, 2)
+                    PaddingBottom = UDimNew(0, 2)
                 })
                 
-                Instances:Create("UIListLayout", {
+                local SubPagesLayout = Instances:Create("UIListLayout", {
                     Parent = Items["SubPages"].Instance,
                     Name = "\0",
                     Padding = UDimNew(0, 2),
                     FillDirection = Enum.FillDirection.Horizontal,
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
-
-                Instances:Create("UICorner", {
-                    Parent = Items["SubPages"].Instance,
-                    Name = "\0",
-                    CornerRadius = UDimNew(0, 7)
-                })                
 
                 Items["Columns"] = Instances:Create("Frame", {
                     Parent = Items["Page"].Instance,
