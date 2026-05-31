@@ -13,7 +13,6 @@ local Library do
     local RunService = game:GetService("RunService")
     local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
     local TweenService = game:GetService("TweenService")
-    local TouchEnabled = UserInputService.TouchEnabled
 
     gethui = gethui or function()
         return CoreGui
@@ -2185,14 +2184,14 @@ end
         Library.MenuKeybind = tostring(KeyCode)
     end
 
-    -- Simple draggable toggle button for mobile/PC
+    -- Fully fixed draggable toggle button
     function Window:AddToggleButton()
         if Library.ToggleButton then return end
         
         local Button = Instances:Create("ImageButton", {
             Parent = Library.Holder.Instance,
             Name = "ToggleButton",
-            Image = "rbxassetid://3927389539", -- gear icon
+            Image = "rbxassetid://3927389539",
             BackgroundColor3 = Library.Theme.Accent,
             BackgroundTransparency = 0.2,
             Size = UDim2New(0, 50, 0, 50),
@@ -2216,38 +2215,52 @@ end
         })
         Library:AddToTheme(Stroke, {Color = "Border"})
         
-        -- Simple drag: just update position directly, no tweening
+        -- Drag variables
         local dragging = false
-        local dragStart
-        local startPos
+        local dragStart = nil
+        local startPos = nil
+        local screenSize = Library.Holder.Instance.AbsoluteSize
         
-        Button:Connect("InputBegan", function(input)
+        -- Start drag
+        local function onDragStart(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
                 startPos = Button.Instance.Position
             end
-        end)
+        end
         
-        Button:Connect("InputEnded", function(input)
+        -- Update drag (called every frame)
+        local function onDragMove(input)
+            if not dragging then return end
+            if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+            
+            local delta = input.Position - dragStart
+            local newX = startPos.X.Offset + delta.X
+            local newY = startPos.Y.Offset + delta.Y
+            
+            -- Clamp to screen edges (50 is button size)
+            newX = math.clamp(newX, 0, screenSize.X - 50)
+            newY = math.clamp(newY, 0, screenSize.Y - 50)
+            
+            Button.Instance.Position = UDim2New(0, newX, 0, newY)
+        end
+        
+        -- End drag
+        local function onDragEnd(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = false
+                dragStart = nil
+                startPos = nil
             end
-        end)
+        end
         
-        Library:Connect(UserInputService.InputChanged, function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local delta = input.Position - dragStart
-                local newX = startPos.X.Offset + delta.X
-                local newY = startPos.Y.Offset + delta.Y
-                -- clamp to screen edges
-                local screenSize = Library.Holder.Instance.AbsoluteSize
-                newX = math.clamp(newX, 0, screenSize.X - 50)
-                newY = math.clamp(newY, 0, screenSize.Y - 50)
-                Button.Instance.Position = UDim2New(0, newX, 0, newY)
-            end
-        end)
+        -- Connect to UserInputService for global tracking
+        Library:Connect(UserInputService.InputBegan, onDragStart)
+        Library:Connect(UserInputService.InputChanged, onDragMove)
+        Library:Connect(UserInputService.InputEnded, onDragEnd)
         
+        -- Tap to toggle menu
         Button:Connect("MouseButton1Click", function()
             Window:SetOpen(not Window.IsOpen)
         end)
