@@ -145,7 +145,7 @@ local Library do
         ["KeypadOne"]         = "Keypad1",
         ["KeypadTwo"]         = "Keypad2",
         ["KeypadThree"]       = "Keypad3",
-        ["KeypadFour"]        = "Keypad4",
+        ["KeypadFour"]       = "Keypad4",
         ["KeypadFive"]        = "Keypad5",
         ["KeypadSix"]         = "Keypad6",
         ["KeypadSeven"]       = "Keypad7",
@@ -1861,9 +1861,9 @@ Library.Window = function(self, Data)
     Data = Data or { }
 
     local Window = {
-        Name = Data.Name or Data.name or "Window",
-        SubTitle = Data.SubTitle or Data.subtitle or "for PUBG",
-        ExpiresIn = Data.ExpiresIn or Data.expiresin or "23d",
+        Name = Data.Name or Data.name or "Vloods",
+        SubTitle = Data.SubTitle or Data.subtitle or "By Vloods",
+        ExpiresIn = Data.ExpiresIn or Data.expiresin or "",
         Logo = Data.Logo or Data.logo or nil,
         Size = Data.Size or Data.size or UDim2.fromOffset(568, 350),
         
@@ -2175,6 +2175,10 @@ end
             Debounce = false 
             Items["MainFrame"].Instance.Visible = Window.IsOpen
         end)
+    end
+
+    function Window:SetToggleKey(KeyCode)
+        Library.MenuKeybind = tostring(KeyCode)
     end
 
     Library:Connect(UserInputService.InputBegan, function(Input)
@@ -2910,7 +2914,7 @@ Library.Sections.Button = function(self, Data)
         Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element"})
         Items["Button"]:Tween(nil, {
             BackgroundColor3 = Library.Theme.Element, 
-            TextColor3 = FromRGB(255, 255, 255)  -- White text on element background
+            TextColor3 = FromRGB(255, 255, 255)
         })
 
         Library:SafeCall(Button.Callback)
@@ -3916,7 +3920,7 @@ end
         local KeyStroke = Instances:Create("UIStroke", {
             Parent = KeyButton.Instance,
             Name = "\0",
-            Color = Library.Theme.Border2,
+            Color = Library.Theme["Border 2"],
             Thickness = 1.5,
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         })
