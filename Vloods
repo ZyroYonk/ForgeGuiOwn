@@ -1,5 +1,6 @@
 -- made by Vloods
 -- https://discord.gg/VhvTd5HV8d
+-- Complete fixed library (toggle button drag does NOT affect window)
 
 if getgenv().Library then
     getgenv().Library:Unload()
@@ -2184,7 +2185,7 @@ end
         Library.MenuKeybind = tostring(KeyCode)
     end
 
-    -- Fully fixed draggable toggle button
+    -- Fully fixed draggable toggle button (does NOT interfere with window drag)
     function Window:AddToggleButton()
         if Library.ToggleButton then return end
         
@@ -2215,14 +2216,14 @@ end
         })
         Library:AddToTheme(Stroke, {Color = "Border"})
         
-        -- Drag variables
+        -- Drag variables (only active when dragging starts on this button)
         local dragging = false
         local dragStart = nil
         local startPos = nil
         local screenSize = Library.Holder.Instance.AbsoluteSize
         
-        -- Start drag
-        local function onDragStart(input)
+        -- Start drag only if input begins on this button
+        local function onButtonInputBegan(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
@@ -2230,8 +2231,8 @@ end
             end
         end
         
-        -- Update drag (called every frame)
-        local function onDragMove(input)
+        -- Update drag (only if dragging is true)
+        local function onInputChanged(input)
             if not dragging then return end
             if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
             
@@ -2239,7 +2240,6 @@ end
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             
-            -- Clamp to screen edges (50 is button size)
             newX = math.clamp(newX, 0, screenSize.X - 50)
             newY = math.clamp(newY, 0, screenSize.Y - 50)
             
@@ -2247,7 +2247,7 @@ end
         end
         
         -- End drag
-        local function onDragEnd(input)
+        local function onInputEnded(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = false
                 dragStart = nil
@@ -2255,17 +2255,27 @@ end
             end
         end
         
-        -- Connect to UserInputService for global tracking
-        Library:Connect(UserInputService.InputBegan, onDragStart)
-        Library:Connect(UserInputService.InputChanged, onDragMove)
-        Library:Connect(UserInputService.InputEnded, onDragEnd)
+        -- Connect button events (not global)
+        Button:Connect("InputBegan", onButtonInputBegan)
+        Button:Connect("InputEnded", onInputEnded)
         
-        -- Tap to toggle menu
-        Button:Connect("MouseButton1Click", function()
-            Window:SetOpen(not Window.IsOpen)
+        -- Connect global movement, but it will only act when dragging is true
+        Library:Connect(UserInputService.InputChanged, onInputChanged)
+        
+        -- Tap to toggle menu (only if not dragging - simple check)
+        local tapStart = nil
+        Button:Connect("InputBegan", function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                tapStart = tick()
+            end
         end)
-        Button:Connect("TouchTap", function()
-            Window:SetOpen(not Window.IsOpen)
+        Button:Connect("InputEnded", function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if tapStart and (tick() - tapStart) < 0.3 and not dragging then
+                    Window:SetOpen(not Window.IsOpen)
+                end
+                tapStart = nil
+            end
         end)
         
         Library.ToggleButton = Button
