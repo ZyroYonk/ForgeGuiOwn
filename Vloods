@@ -5691,4 +5691,439 @@ end
                     Name = "\0",
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
                     Color = FromRGB(56, 62, 62),
-                    Th
+                    Thickness = 2
+                }):AddToTheme({Color = "Border 2"})
+                
+                Instances:Create("UIPadding", {
+                    Parent = Items["Input"].Instance,
+                    Name = "\0",
+                    PaddingLeft = UDimNew(0, 8),
+                    PaddingRight = UDimNew(0, 8),
+                    PaddingTop = UDimNew(0, 4),
+                    PaddingBottom = UDimNew(0, 4)
+                })                 
+            end
+
+            function Textbox:Get()
+                return Textbox.Value
+            end
+
+            function Textbox:SetVisibility(Bool)
+                Items["Textbox"].Instance.Visible = Bool
+            end
+
+            function Textbox:Set(Value)
+                if Textbox.Numeric then
+                    if (not tonumber(Value)) and StringLen(tostring(Value)) > 0 then
+                        Value = Textbox.Value
+                    end
+                end
+
+                Textbox.Value = Value
+                Items["Input"].Instance.Text = Value
+                Library.Flags[Textbox.Flag] = Value
+
+                if Textbox.Callback then
+                    Library:SafeCall(Textbox.Callback, Value)
+                end
+            end
+
+            if Textbox.Finished then 
+                Items["Input"]:Connect("FocusLost", function(PressedEnterQuestionMark)
+                    if PressedEnterQuestionMark then
+                        Textbox:Set(Items["Input"].Instance.Text)
+                    end
+                end)
+            else
+                Items["Input"].Instance:GetPropertyChangedSignal("Text"):Connect(function()
+                    Textbox:Set(Items["Input"].Instance.Text)
+                end)
+            end
+
+            if Textbox.Default then
+                Textbox:Set(Textbox.Default)
+            end
+
+            Library.SetFlags[Textbox.Flag] = function(Value)
+                Textbox:Set(Value)
+            end
+
+            return Textbox 
+        end
+
+        -- NEW: Discord Webhook Section (Textbox for URL + Send button + optional keybind)
+        Library.Sections.Webhook = function(self, Data)
+            Data = Data or {}
+            local Section = self
+            
+            local WebhookObj = {
+                Url = "",
+                SendCallback = Data.Callback or function() end,
+                Keybind = nil,
+                SendButton = nil,
+                UrlTextbox = nil,
+            }
+            
+            -- Textbox for URL
+            WebhookObj.UrlTextbox = Section:Textbox({
+                Name = Data.Name or "Webhook URL",
+                Placeholder = "https://discord.com/api/webhooks/...",
+                Flag = Data.Flag or Library:NextFlag(),
+                Callback = function(url)
+                    WebhookObj.Url = url
+                end
+            })
+            
+            -- Send Button
+            WebhookObj.SendButton = Section:Button({
+                Name = "Send Test Message",
+                Callback = function()
+                    if WebhookObj.Url == "" then return end
+                    local data = {
+                        content = Data.Message or "Hello from GUI!",
+                        embeds = Data.Embeds or {},
+                        username = Data.Username or "Webhook",
+                    }
+                    local success, err = pcall(function()
+                        local response = HttpService:PostAsync(WebhookObj.Url, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+                    end)
+                    if success then
+                        Library:Notification("Webhook sent successfully!", 3)
+                        if WebhookObj.SendCallback then
+                            Library:SafeCall(WebhookObj.SendCallback, WebhookObj.Url)
+                        end
+                    else
+                        Library:Notification("Failed to send webhook: " .. tostring(err), 4)
+                    end
+                end
+            })
+            
+            -- Optional Keybind to trigger send
+            if Data.Keybind then
+                WebhookObj.Keybind = Section:Keybind({
+                    Title = "Send Webhook Keybind",
+                    Value = Data.Keybind.Default or "G",
+                    Callback = function(toggled)
+                        if toggled then
+                            WebhookObj.SendButton:Press()
+                        end
+                    end
+                })
+            end
+            
+            return WebhookObj
+        end
+    end
+
+    -- Add Keybind method to Page (Tab)
+    function Library.Pages.Keybind(self, Data)
+        Data = Data or {}
+        local Title = Data.Title or "Keybind"
+        local Desc = Data.Desc
+        local DefaultKey = Data.Value or "G"
+        local Callback = Data.Callback or function() end
+
+        local Container = Instances:Create("Frame", {
+            Parent = self.ColumnsData[1].Instance,
+            Name = "\0",
+            BackgroundTransparency = 1,
+            Size = UDim2New(1, 0, 0, 40),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BorderSizePixel = 0,
+            BackgroundColor3 = FromRGB(255, 255, 255)
+        })
+
+        local Inner = Instances:Create("Frame", {
+            Parent = Container.Instance,
+            Name = "\0",
+            BackgroundColor3 = Library.Theme.Inline,
+            Size = UDim2New(1, 0, 1, 0),
+            BorderSizePixel = 0,
+            BackgroundTransparency = 1
+        })
+        Library:AddToTheme(Inner, {BackgroundColor3 = "Inline"})
+
+        local UIStroke = Instances:Create("UIStroke", {
+            Parent = Inner.Instance,
+            Name = "\0",
+            Color = Library.Theme.Border,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        })
+        Library:AddToTheme(UIStroke, {Color = "Border"})
+
+        local Corner = Instances:Create("UICorner", {
+            Parent = Inner.Instance,
+            Name = "\0",
+            CornerRadius = UDimNew(0, 7)
+        })
+
+        local LeftFrame = Instances:Create("Frame", {
+            Parent = Inner.Instance,
+            Name = "\0",
+            BackgroundTransparency = 1,
+            Size = UDim2New(1, -90, 1, 0),
+            Position = UDim2New(0, 12, 0, 0)
+        })
+
+        local TitleLabel = Instances:Create("TextLabel", {
+            Parent = LeftFrame.Instance,
+            Name = "\0",
+            FontFace = Library.Font,
+            TextColor3 = FromRGB(255, 255, 255),
+            Text = Title,
+            Size = UDim2New(1, 0, 0, 18),
+            Position = UDim2New(0, 0, 0, 8),
+            BackgroundTransparency = 1,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextSize = 14
+        })
+
+        local DescLabel
+        if Desc then
+            DescLabel = Instances:Create("TextLabel", {
+                Parent = LeftFrame.Instance,
+                Name = "\0",
+                FontFace = Library.Font,
+                TextColor3 = FromRGB(150, 150, 150),
+                Text = Desc,
+                Size = UDim2New(1, 0, 0, 16),
+                Position = UDim2New(0, 0, 0, 26),
+                BackgroundTransparency = 1,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextSize = 11
+            })
+        end
+
+        local KeyButton = Instances:Create("TextButton", {
+            Parent = Inner.Instance,
+            Name = "\0",
+            FontFace = Library.Font,
+            TextColor3 = FromRGB(200, 200, 200),
+            BorderColor3 = FromRGB(0, 0, 0),
+            Text = DefaultKey,
+            AutoButtonColor = false,
+            BackgroundTransparency = 1,
+            Size = UDim2New(0, 60, 0, 26),
+            Position = UDim2New(1, -72, 0.5, -13),
+            BackgroundColor3 = FromRGB(30, 34, 34),
+            TextSize = 12
+        })
+        Library:AddToTheme(KeyButton, {BackgroundColor3 = "Element"})
+
+        local KeyCorner = Instances:Create("UICorner", {
+            Parent = KeyButton.Instance,
+            Name = "\0",
+            CornerRadius = UDimNew(0, 4)
+        })
+
+        local KeyStroke = Instances:Create("UIStroke", {
+            Parent = KeyButton.Instance,
+            Name = "\0",
+            Color = Library.Theme["Border 2"],
+            Thickness = 1.5,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        })
+        Library:AddToTheme(KeyStroke, {Color = "Border 2"})
+
+        local Picking = false
+        local CurrentKey = DefaultKey
+
+        local function SetKey(KeyName)
+            CurrentKey = KeyName
+            KeyButton.Instance.Text = KeyName
+            if Callback then
+                Library:SafeCall(Callback, KeyName)
+            end
+        end
+
+        KeyButton:Connect("MouseButton1Click", function()
+            if Picking then return end
+            Picking = true
+            KeyButton.Instance.Text = "..."
+            local InputBegan
+            InputBegan = UserInputService.InputBegan:Connect(function(Input)
+                if Input.UserInputType == Enum.UserInputType.Keyboard then
+                    local KeyCode = Input.KeyCode.Name
+                    if KeyCode == "Backspace" then KeyCode = "None" end
+                    SetKey(KeyCode)
+                    Picking = false
+                    InputBegan:Disconnect()
+                elseif Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                    -- ignore
+                else
+                    SetKey(Input.UserInputType.Name)
+                    Picking = false
+                    InputBegan:Disconnect()
+                end
+            end)
+            task.wait(5)
+            if Picking then
+                Picking = false
+                KeyButton.Instance.Text = CurrentKey
+                InputBegan:Disconnect()
+            end
+        end)
+
+        local KeybindObject = {
+            Get = function() return CurrentKey end,
+            Set = function(Key) SetKey(Key) end,
+            Container = Container
+        }
+
+        return KeybindObject
+    end
+
+    Library.CreateSettingsPage = function(self, Window)
+        local SettingsPage = Window:Page({Name = "Settings", Icon = "72732892493295"}) do 
+            local ConfigsSubPage = SettingsPage:SubPage({Name = "Configs"})
+            local ThemingSubPage = SettingsPage:SubPage({Name = "Theming"})
+            local SettingsSubPage = SettingsPage:SubPage({Name = "Settings"})
+
+            do -- Configs
+                local ConfigsSection = ConfigsSubPage:Section({Name = "Configs", Side = 1, Icon = "97491613646216"})
+
+                local ConfigName = ""
+                local ConfigSelected
+
+                local ConfigsList = ConfigsSection:Dropdown({
+                    Name = "Configs", 
+                    Flag = "ConfigsList", 
+                    Items = { }, 
+                    Multi = false,
+                    Callback = function(Value)
+                        ConfigSelected = Value
+                    end
+                })
+
+                ConfigsSection:Textbox({ 
+                    Default = "", 
+                    Flag = "ConfigName", 
+                    Placeholder = "Config name", 
+                    Callback = function(Value)
+                        ConfigName = Value
+                    end
+                })
+
+                ConfigsSection:Button({
+                    Name = "Create",
+                    Callback = function()
+                    if ConfigName and ConfigName ~= "" then
+                        if not isfile(Library.Folders.Configs .. "/" .. ConfigName .. ".json") then
+                            writefile(Library.Folders.Configs .. "/" .. ConfigName .. ".json", Library:GetConfig())
+                            Library:RefreshConfigsList(ConfigsList)
+                        else
+                            return
+                        end
+                    end
+                end})
+
+                ConfigsSection:Button({
+                    Name = "Delete", 
+                    Callback = function()
+                    if ConfigSelected then
+                        Library:DeleteConfig(ConfigSelected)
+                        Library:RefreshConfigsList(ConfigsList)
+                    end
+                end})
+
+                ConfigsSection:Button({
+                    Name = "Load", 
+                    Callback = function()
+                    if ConfigSelected then
+                        Library:LoadConfig(readfile(Library.Folders.Configs .. "/" .. ConfigSelected))
+                    end
+                end})
+
+                ConfigsSection:Button({
+                    Name = "Save", 
+                    Callback = function()
+                    if ConfigName and ConfigName ~= "" then
+                        writefile(Library.Folders.Configs .. "/" .. ConfigName .. ".json", Library:GetConfig())
+                        Library:RefreshConfigsList(ConfigsList)
+                    end
+                end})
+
+                ConfigsSection:Button({
+                    Name = "Refresh", 
+                    Callback = function()
+                    Library:RefreshConfigsList(ConfigsList)
+                end})
+
+                Library:RefreshConfigsList(ConfigsList)               
+            end
+
+            do -- Theming
+                local ThemingSection = ThemingSubPage:Section({Name = "Theming", Icon = "131595494666590", Side = 1})
+                for Index, Value in Library.Theme do 
+                    ThemingSection:Label(Index):Colorpicker({
+                        Flag = Index.."Theme",
+                        Default = Value,
+                        Callback = function(Value)
+                            Library.Theme[Index] = Value
+                            Library:ChangeTheme(Index, Value)
+                        end
+                    })
+                end
+            end
+
+            do -- Settings
+                local SettingsSection = SettingsSubPage:Section({Name = "Settings", Icon = "72732892493295", Side = 1})     
+                
+                SettingsSection:Button({
+                    Name = "Unload",
+                    Callback = function()
+                        Library:Unload()
+                    end
+                })
+                
+                SettingsSection:Label("Menu Keybind"):Keybind({
+                    Name = "Menu Keybind",
+                    Flag = "MenuKeybind",
+                    Default = Library.MenuKeybind,
+                    Mode = "Toggle",
+                    Callback = function()
+                        Library.MenuKeybind = Library.Flags["MenuKeybind"].Key
+                    end
+                })
+
+                SettingsSection:Slider({
+                    Name = "Tween Speed",
+                    Default = 0.3,
+                    Flag = "Tween Speed",
+                    Decimals = 0.01,
+                    Suffix = "s",
+                    Max = 10,
+                    Min = 0,
+                    Callback = function(Value)
+                        Library.Tween.Time = Value
+                    end
+                })
+
+                SettingsSection:Dropdown({
+                    Name = "Tween Style",
+                    Flag = "Tween style",
+                    Items = { "Linear", "Quad", "Quart", "Back", "Bounce", "Circular", "Cubic", "Elastic", "Exponential", "Sine", "Quint" },
+                    Default = "Quart",
+                    Callback = function(Value)
+                        if not Value then Value = "Quint" end
+                        Library.Tween.Style = Enum.EasingStyle[Value]
+                    end
+                })
+
+                SettingsSection:Dropdown({
+                    Name = "Tween Direction",
+                    Flag = "Tween direction",
+                    Items = { "In", "Out", "InOut" },
+                    Default = "Out",
+                    Callback = function(Value)
+                        if not Value then Value = "Out" end
+                        Library.Tween.Direction = Enum.EasingDirection[Value]
+                    end
+                })
+            end
+        end
+    end
+end
+
+getgenv().Library = Library
+return Library
