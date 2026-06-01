@@ -3,6 +3,7 @@
 -- Complete fixed library with stable toggle button (never disappears)
 -- UPDATED: Integrated StrikeX-style toggle button with gradient stroke
 -- FIXED: Dropdown text wraps inside the GUI, no overflow
+-- FIXED: Notifications now appear at top-left, are bigger, and include a verified badge
 
 if getgenv().Library then
     getgenv().Library:Unload()
@@ -545,31 +546,35 @@ local Library do
         ResetOnSpawn = false
     })
 
+    -- NOTIFICATION HOLDER: TOP-LEFT, BIGGER, WITH VERIFIED BADGE SUPPORT
     Library.NotifHolder = Instances:Create("Frame", {
         Parent = Library.Holder.Instance,
         Name = "\0",
         BackgroundTransparency = 1,
-        Size = UDim2New(0, 0, 1, 0),
+        Size = UDim2New(0, 320, 0, 0),          -- fixed width, auto height
+        Position = UDim2New(0, 12, 0, 12),      -- top-left corner with small margin
         BorderColor3 = FromRGB(0, 0, 0),
         BorderSizePixel = 0,
-        AutomaticSize = Enum.AutomaticSize.X,
+        AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = FromRGB(255, 255, 255)
     })
     
     Instances:Create("UIListLayout", {
         Parent = Library.NotifHolder.Instance,
         Name = "\0",
-        Padding = UDimNew(0, 12),
-        SortOrder = Enum.SortOrder.LayoutOrder
+        Padding = UDimNew(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Top
     })
     
     Instances:Create("UIPadding", {
         Parent = Library.NotifHolder.Instance,
         Name = "\0",
-        PaddingTop = UDimNew(0, 12),
-        PaddingBottom = UDimNew(0, 12),
-        PaddingRight = UDimNew(0, 12),
-        PaddingLeft = UDimNew(0, 12)
+        PaddingTop = UDimNew(0, 0),
+        PaddingBottom = UDimNew(0, 0),
+        PaddingRight = UDimNew(0, 0),
+        PaddingLeft = UDimNew(0, 0)
     })
 
     Library.Unload = function(self)
@@ -1744,15 +1749,16 @@ end
             return Keybind, Items 
         end
 
+        -- UPDATED NOTIFICATION: top-left, bigger, with verified badge
         Library.Notification = function(self, Name, Duration, Icon)
             local Items = { } do 
                 Items["Notification"] = Instances:Create("Frame", {
                     Parent = Library.NotifHolder.Instance,
                     Name = "\0",
-                    Size = UDim2New(0, 0, 0, 30),
+                    Size = UDim2New(1, 0, 0, 0),        -- full width of holder, auto height
                     BorderColor3 = FromRGB(0, 0, 0),
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BackgroundColor3 = FromRGB(16, 18, 18)
                 })  Items["Notification"]:AddToTheme({BackgroundColor3 = "Background"})
                 
@@ -1772,26 +1778,47 @@ end
                 Instances:Create("UIPadding", {
                     Parent = Items["Notification"].Instance,
                     Name = "\0",
-                    PaddingRight = UDimNew(0, 8),
-                    PaddingLeft = UDimNew(0, 8)
+                    PaddingRight = UDimNew(0, 12),
+                    PaddingLeft = UDimNew(0, 12),
+                    PaddingTop = UDimNew(0, 10),
+                    PaddingBottom = UDimNew(0, 10)
                 })
                 
+                -- Verified badge (blue checkmark) as the main icon
+                local VerifiedIcon = Instances:Create("ImageLabel", {
+                    Parent = Items["Notification"].Instance,
+                    Name = "VerifiedBadge",
+                    ImageColor3 = FromRGB(0, 120, 215),
+                    BorderColor3 = FromRGB(0, 0, 0),
+                    AnchorPoint = Vector2New(0, 0.5),
+                    Image = "rbxassetid://6023426916",  -- Twitter verified checkmark
+                    BackgroundTransparency = 1,
+                    Position = UDim2New(0, 0, 0.5, 0),
+                    Size = UDim2New(0, 22, 0, 22),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = FromRGB(255, 255, 255)
+                })
+                
+                -- Optional custom icon (if provided, replace the verified badge)
+                local CustomIcon = nil
                 if Icon then
-                    Items["Icon"] = Instances:Create("ImageLabel", {
+                    CustomIcon = Instances:Create("ImageLabel", {
                         Parent = Items["Notification"].Instance,
-                        Name = "\0",
+                        Name = "CustomIcon",
                         ImageColor3 = FromRGB(255, 255, 255),
                         BorderColor3 = FromRGB(0, 0, 0),
                         AnchorPoint = Vector2New(0, 0.5),
                         Image = "rbxassetid://"..Icon,
                         BackgroundTransparency = 1,
                         Position = UDim2New(0, 0, 0.5, 0),
-                        Size = UDim2New(0, 16, 0, 16),
+                        Size = UDim2New(0, 22, 0, 22),
                         BorderSizePixel = 0,
                         BackgroundColor3 = FromRGB(255, 255, 255)
                     })
+                    VerifiedIcon.Instance.Visible = false
                 end
                 
+                -- Text label (bigger font, bold)
                 Items["Text"] = Instances:Create("TextLabel", {
                     Parent = Items["Notification"].Instance,
                     Name = "\0",
@@ -1800,12 +1827,14 @@ end
                     BorderColor3 = FromRGB(0, 0, 0),
                     Text = Name,
                     AnchorPoint = Vector2New(0, 0.5),
-                    Size = UDim2New(0, 0, 0, 15),
+                    Size = UDim2New(1, -40, 0, 0),
                     BackgroundTransparency = 1,
-                    Position = UDim2New(0, Icon and 24 or 0, 0.5, 0),
+                    Position = UDim2New(0, 34, 0.5, 0),
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
-                    TextSize = 14,
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    TextSize = 15,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextWrapped = true,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })  
             end
@@ -1826,8 +1855,6 @@ end
             
             task.wait(0.3)
 
-            Items["Notification"].Instance.AutomaticSize = Enum.AutomaticSize.Y
-
             Library:Thread(function()
                 for Index, Value in Items do 
                     if Value.Instance:IsA("Frame") then
@@ -1835,13 +1862,13 @@ end
                     elseif Value.Instance:IsA("TextLabel") then 
                         Value:Tween(nil, {TextTransparency = 0})
                     elseif Value.Instance:IsA("ImageLabel") then 
-                        Value:Tween(nil, {ImageTransparency = 0.5})
+                        Value:Tween(nil, {ImageTransparency = 0})
                     elseif Value.Instance:IsA("UIStroke") then
                         Value:Tween(nil, {Transparency = 0})
                     end
                 end
 
-                Items["Notification"]:Tween(nil, {Size = UDim2New(0, Size.X, 0, Size.Y)})
+                Items["Notification"]:Tween(nil, {Size = UDim2New(1, 0, 0, Size.Y)})
 
                 task.delay(Duration, function()
                     for Index, Value in Items do 
@@ -1856,7 +1883,7 @@ end
                         end
                     end
 
-                    Items["Notification"]:Tween(nil, {Size = UDim2New(0, 0, 0, 0)})
+                    Items["Notification"]:Tween(nil, {Size = UDim2New(1, 0, 0, 0)})
                     task.wait(0.5)
                     Items["Notification"]:Clean()
                 end)
@@ -1869,7 +1896,7 @@ Library.Window = function(self, Data)
 
     local Window = {
         Name = Data.Name or Data.name or "Vloods",
-        SubTitle = Data.SubTitle or Data.subtitle or "By Vloods",
+        SubTitle = Data.SubTitle or Data.subtitle or "By Vloods" .. utf8.char(0xE000),
         ExpiresIn = Data.ExpiresIn or Data.expiresin or "",
         Logo = Data.Logo or Data.logo or nil,
         Size = Data.Size or Data.size or UDim2.fromOffset(568, 350),
@@ -2188,11 +2215,10 @@ end
         Library.MenuKeybind = tostring(KeyCode)
     end
 
-    -- UPDATED: STRIKEX-STYLE TOGGLE BUTTON (never disappears, always draggable, red gradient stroke)
+    -- STRIKEX-STYLE TOGGLE BUTTON (never disappears, always draggable, red gradient stroke)
     function Window:AddToggleButton()
         if Library.ToggleButton then return end
         
-        -- Create a dedicated ScreenGui for the button to ensure it's always on top
         if not Library.ToggleButtonGui then
             Library.ToggleButtonGui = Instances:Create("ScreenGui", {
                 Parent = gethui(),
@@ -2203,7 +2229,6 @@ end
             })
         end
         
-        -- Create the button with the new StrikeX design
         local Button = Instances:Create("ImageButton", {
             Parent = Library.ToggleButtonGui.Instance,
             Name = "StrikeXToggle",
@@ -2217,13 +2242,11 @@ end
             Visible = true
         })
         
-        -- Corner radius (rounded corners)
         Instances:Create("UICorner", {
             Parent = Button.Instance,
             CornerRadius = UDimNew(0, 12)
         })
         
-        -- Stroke with red gradient (matching StrikeX style)
         local Stroke = Instances:Create("UIStroke", {
             Parent = Button.Instance,
             Thickness = 2,
@@ -2231,7 +2254,6 @@ end
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         })
         
-        -- Gradient for the stroke
         local Gradient = Instances:Create("UIGradient", {
             Parent = Stroke.Instance,
             Rotation = 45,
@@ -2241,13 +2263,11 @@ end
             }
         })
         
-        -- Robust dragging system
         local dragging = false
         local dragStart = nil
         local startPos = nil
         local screenSize = Library.ToggleButtonGui.Instance.AbsoluteSize
         
-        -- Update screen size periodically
         task.spawn(function()
             while Library.ToggleButtonGui and Button do
                 screenSize = Library.ToggleButtonGui.Instance.AbsoluteSize
@@ -2271,7 +2291,6 @@ end
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             
-            -- Clamp to screen edges (60 is button size)
             newX = math.clamp(newX, 0, screenSize.X - 60)
             newY = math.clamp(newY, 0, screenSize.Y - 60)
             
@@ -2286,12 +2305,10 @@ end
             end
         end
         
-        -- Connect to button's own events AND global ones for smooth dragging
         Button:Connect("InputBegan", onInputBegan)
         Button:Connect("InputEnded", onInputEnded)
         Library:Connect(UserInputService.InputChanged, onInputChanged)
         
-        -- Tap to toggle (with short delay to avoid conflict with drag)
         local tapTime = nil
         Button:Connect("InputBegan", function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2425,7 +2442,6 @@ end
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
                 
-                -- Make SubPages a ScrollingFrame for horizontal sliding
                 Items["SubPagesContainer"] = Instances:Create("Frame", {
                     Parent = Items["Page"].Instance,
                     Name = "\0",
@@ -2484,30 +2500,30 @@ end
             local Debounce = false
 
             function Page:Turn(Bool)
-    if Debounce then 
-        return 
-    end
+                if Debounce then 
+                    return 
+                end
 
-    Page.Active = Bool 
-    
-    Debounce = true
-    Items["Page"].Instance.Visible = Bool 
-    Items["Page"].Instance.Parent = Bool and Page.Window.Items["Content"].Instance or Library.UnusedHolder.Instance
+                Page.Active = Bool 
+                
+                Debounce = true
+                Items["Page"].Instance.Visible = Bool 
+                Items["Page"].Instance.Parent = Bool and Page.Window.Items["Content"].Instance or Library.UnusedHolder.Instance
 
-    if Page.Active then
-        Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0})
-        Items["Icon"]:Tween(nil, {ImageColor3 = Library.Theme.Accent})
-        Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
-        Items["UIStroke"]:Tween(nil, {Transparency = 0})
-    else
-        Items["Inactive"]:Tween(nil, {BackgroundTransparency = 1})
-        Items["Icon"]:Tween(nil, {ImageColor3 = FromRGB(100, 100, 100)})
-        Items["Text"]:Tween(nil, {TextColor3 = FromRGB(100, 100, 100)})
-        Items["UIStroke"]:Tween(nil, {Transparency = 1})
-    end
+                if Page.Active then
+                    Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0})
+                    Items["Icon"]:Tween(nil, {ImageColor3 = Library.Theme.Accent})
+                    Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
+                    Items["UIStroke"]:Tween(nil, {Transparency = 0})
+                else
+                    Items["Inactive"]:Tween(nil, {BackgroundTransparency = 1})
+                    Items["Icon"]:Tween(nil, {ImageColor3 = FromRGB(100, 100, 100)})
+                    Items["Text"]:Tween(nil, {TextColor3 = FromRGB(100, 100, 100)})
+                    Items["UIStroke"]:Tween(nil, {Transparency = 1})
+                end
 
-    Debounce = false
-end
+                Debounce = false
+            end
 
             Items["Inactive"]:Connect("MouseButton1Down", function()
                 for Index, Value in Page.Window.Pages do 
@@ -2642,18 +2658,18 @@ local NewColumn = Instances:Create("ScrollingFrame", {
     end
 
     function Page:Turn(Bool)
-    if Page.Active == Bool then return end
-    Page.Active = Bool 
-    Items["Page"].Instance.Visible = Bool 
-    Items["Page"].Instance.Parent = Bool and Page.Page.Items["Columns"].Instance or Library.UnusedHolder.Instance
-    if Page.Active then
-        Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0, TextTransparency = 0})
-        Items["Inactive"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
-    else
-        Items["Inactive"]:Tween(nil, {BackgroundTransparency = 1, TextTransparency = 0.5})
-        Items["Inactive"]:Tween(nil, {TextColor3 = FromRGB(100, 100, 100)})
+        if Page.Active == Bool then return end
+        Page.Active = Bool 
+        Items["Page"].Instance.Visible = Bool 
+        Items["Page"].Instance.Parent = Bool and Page.Page.Items["Columns"].Instance or Library.UnusedHolder.Instance
+        if Page.Active then
+            Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0, TextTransparency = 0})
+            Items["Inactive"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
+        else
+            Items["Inactive"]:Tween(nil, {BackgroundTransparency = 1, TextTransparency = 0.5})
+            Items["Inactive"]:Tween(nil, {TextColor3 = FromRGB(100, 100, 100)})
+        end
     end
-end
 
     Items["Inactive"]:Connect("MouseButton1Down", function()
         for _, Value in Page.Page.SubPages do 
@@ -3285,7 +3301,7 @@ end
             return Slider 
         end
 
-        -- FIXED DROPDOWN with text wrapping (long text stays inside GUI)
+        -- DROPDOWN with text wrapping (fixed)
         Library.Sections.Dropdown = function(self, Data)
             Data = Data or { }
 
@@ -3964,7 +3980,6 @@ end
         local DefaultKey = Data.Value or "G"
         local Callback = Data.Callback or function() end
 
-        -- Create a container frame that will hold the keybind row
         local Container = Instances:Create("Frame", {
             Parent = self.ColumnsData[1].Instance,
             Name = "\0",
@@ -3975,7 +3990,6 @@ end
             BackgroundColor3 = FromRGB(255, 255, 255)
         })
 
-        -- Inner frame to match section styling
         local Inner = Instances:Create("Frame", {
             Parent = Container.Instance,
             Name = "\0",
@@ -4000,7 +4014,6 @@ end
             CornerRadius = UDimNew(0, 7)
         })
 
-        -- Left side: Title and optional description
         local LeftFrame = Instances:Create("Frame", {
             Parent = Inner.Instance,
             Name = "\0",
@@ -4038,7 +4051,6 @@ end
             })
         end
 
-        -- Right side: Keybind button
         local KeyButton = Instances:Create("TextButton", {
             Parent = Inner.Instance,
             Name = "\0",
@@ -4070,7 +4082,6 @@ end
         })
         Library:AddToTheme(KeyStroke, {Color = "Border 2"})
 
-        -- Key picking logic
         local Picking = false
         local CurrentKey = DefaultKey
 
@@ -4095,7 +4106,7 @@ end
                     Picking = false
                     InputBegan:Disconnect()
                 elseif Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                    -- ignore mouse clicks while picking
+                    -- ignore
                 else
                     SetKey(Input.UserInputType.Name)
                     Picking = false
@@ -4110,7 +4121,6 @@ end
             end
         end)
 
-        -- Return an object with methods to get/set the key
         local KeybindObject = {
             Get = function() return CurrentKey end,
             Set = function(Key) SetKey(Key) end,
