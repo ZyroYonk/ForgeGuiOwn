@@ -6,7 +6,7 @@
 -- - Discord Webhook support with Textbox + Send button + optional keybind
 -- - User Profile (avatar, username, session time, clickable callback)
 -- - Fixed text overflow in Textbox and Dropdown
--- - Bigger StrikeX-style toggle button (80x80)
+-- - Bigger StrikeX-style toggle button (110x110)
 -- - Session duration integrated into profile
 
 if getgenv().Library then
@@ -3910,7 +3910,7 @@ end
         Library.MenuKeybind = tostring(KeyCode)
     end
 
-    -- STRIKEX-STYLE TOGGLE BUTTON (bigger, never disappears, always draggable, red gradient stroke)
+    -- STRIKEX-STYLE TOGGLE BUTTON (bigger, 110x110, never disappears, always draggable, red gradient stroke)
     function Window:AddToggleButton()
         if Library.ToggleButton then return end
         
@@ -3929,7 +3929,7 @@ end
             Name = "StrikeXToggle",
             Image = "rbxassetid://77596720579122",
             BackgroundColor3 = FromRGB(30, 30, 30),
-            Size = UDim2New(0, 80, 0, 80),  -- BIGGER (was 60)
+            Size = UDim2New(0, 110, 0, 110),  -- BIGGER (was 80)
             Position = UDim2New(0, 70, 0, 70),
             AutoButtonColor = true,
             BorderSizePixel = 0,
@@ -3939,12 +3939,12 @@ end
         
         Instances:Create("UICorner", {
             Parent = Button.Instance,
-            CornerRadius = UDimNew(0, 16) -- adjusted for larger size
+            CornerRadius = UDimNew(0, 20) -- adjusted for larger size
         })
         
         local Stroke = Instances:Create("UIStroke", {
             Parent = Button.Instance,
-            Thickness = 2.5,
+            Thickness = 3,
             Color = FromRGB(255, 0, 0),
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         })
@@ -3986,9 +3986,10 @@ end
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             
-            -- Clamp within screen bounds (button size 80)
-            newX = math.clamp(newX, 0, screenSize.X - 80)
-            newY = math.clamp(newY, 0, screenSize.Y - 80)
+            -- Dynamically clamp using button's actual size
+            local btnSize = Button.Instance.AbsoluteSize
+            newX = math.clamp(newX, 0, screenSize.X - btnSize.X)
+            newY = math.clamp(newY, 0, screenSize.Y - btnSize.Y)
             
             Button.Instance.Position = UDim2New(0, newX, 0, newY)
         end
@@ -4731,7 +4732,9 @@ Library.Sections.Button = function(self, Data)
             Size = UDim2New(1, 0, 0, 25),
             BorderSizePixel = 0,
             TextSize = 14,
-            BackgroundColor3 = FromRGB(30, 34, 34)
+            BackgroundColor3 = FromRGB(30, 34, 34),
+            TextWrapped = false,
+            TextTruncate = Enum.TextTruncate.AtEnd   -- prevent overflow
         })
         Items["Button"]:AddToTheme({BackgroundColor3 = "Element"})
         
