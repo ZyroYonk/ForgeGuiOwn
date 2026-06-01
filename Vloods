@@ -2,6 +2,7 @@
 -- https://discord.gg/VhvTd5HV8d
 -- Complete fixed library with stable toggle button (never disappears)
 -- UPDATED: Integrated StrikeX-style toggle button with gradient stroke
+-- FIXED: Dropdown text wraps inside the GUI, no overflow
 
 if getgenv().Library then
     getgenv().Library:Unload()
@@ -3284,6 +3285,7 @@ end
             return Slider 
         end
 
+        -- FIXED DROPDOWN with text wrapping (long text stays inside GUI)
         Library.Sections.Dropdown = function(self, Data)
             Data = Data or { }
 
@@ -3310,8 +3312,9 @@ end
                     Name = "\0",
                     BackgroundTransparency = 1,
                     BorderColor3 = FromRGB(0, 0, 0),
-                    Size = UDim2New(1, 0, 0, 25),
+                    Size = UDim2New(1, 0, 0, 0),
                     BorderSizePixel = 0,
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
                 
@@ -3342,7 +3345,8 @@ end
                     AutoButtonColor = false,
                     AnchorPoint = Vector2New(1, 0.5),
                     Position = UDim2New(1, 0, 0.5, 0),
-                    Size = UDim2New(0, 80, 0, 25),
+                    Size = UDim2New(0, 80, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BorderSizePixel = 0,
                     TextSize = 14,
                     BackgroundColor3 = FromRGB(30, 34, 34)
@@ -3362,13 +3366,15 @@ end
                     BorderColor3 = FromRGB(0, 0, 0),
                     Text = "...",
                     AnchorPoint = Vector2New(0, 0.5),
-                    Size = UDim2New(1, -6, 0, 15),
+                    Size = UDim2New(1, -6, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BackgroundTransparency = 1,
                     Position = UDim2New(0, 6, 0.5, 0),
                     BorderSizePixel = 0,
                     TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    TextWrapped = true,
+                    TextTruncate = Enum.TextTruncate.None,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
                 
@@ -3574,10 +3580,12 @@ end
                     Text = Option,
                     AutoButtonColor = false,
                     BackgroundTransparency = 1,
-                    Size = UDim2New(1, 0, 0, 25),
+                    Size = UDim2New(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
                     TextSize = 14,
+                    TextWrapped = true,
+                    TextTruncate = Enum.TextTruncate.None,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })  OptionButton:AddToTheme({BackgroundColor3 = "Accent"})
 
